@@ -28,16 +28,12 @@ print(total_fules_requirment)
 
 def find_more_fuels(mass: int) -> int:
 
-    fuel = math.floor(mass / 3) - 2
-    total = fuel
-    while fuel > 2:
-        fuel = math.floor(fuel / 3) - 2
-        if fuel <= 0:
-            break
-        else:
-            total += fuel
-
-    return total if total else fuel
+    total = 0
+    next_fuel = find_required_fuel(mass)
+    while next_fuel > 0:
+        total += next_fuel
+        next_fuel = find_required_fuel(next_fuel)
+    return total
 
 
 assert find_more_fuels(14) == 2
