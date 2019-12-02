@@ -41,13 +41,16 @@ with open('data/day2.txt') as f:
 
 
 # PART II
-
-for noun, verb in permutations(range(3, 100), 2):
+for noun, verb in permutations(range(100), 2):
     with open('data/day2.txt') as f:
         real_intcode = f.read()
+
     intcode_list = [int(integer) for integer in real_intcode.split(',')]
     intcode_list[1] = noun
     intcode_list[2] = verb
-    if working_computer(intcode_list)[0] == 19690720:
-        print(f'noun: {noun}, verb: {verb}')
-        print(f'{noun * 100 + verb}')
+
+    TARGET = 19690720
+    output = working_computer(intcode_list)[0]
+    if output == TARGET:
+        print(f'noun: {noun}, verb: {verb}, result: {noun * 100 + verb}')
+        break
