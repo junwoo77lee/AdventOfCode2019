@@ -1,12 +1,7 @@
-from typing import List, Tuple, NamedTuple
+from typing import List, Tuple, NamedTuple, Set
 
 # PART I
 Coord = Tuple[int, int]
-
-# Central port = (0,0)
-wire1 = "R8,U5,L5,D3"
-wire2 = "U7,R6,D4,L4"
-wires = [wire1, wire2]
 
 
 class Wire(NamedTuple):
@@ -14,7 +9,11 @@ class Wire(NamedTuple):
     coordinates: List[Coord]
 
 
-def get_the_closest_point(wires: List[str]) -> int:
+DX = dict(zip(list('RULD'), [1, 0, -1, 0]))
+DY = dict(zip(list('RULD'), [0, 1, 0, -1]))
+
+
+def get_intersections(wires: List[str]) -> Set[List[Coord]]:
     # draw wires
     # find cross-sections by using set operation
     # calculate the closest mahattan distance
@@ -23,102 +22,74 @@ def get_the_closest_point(wires: List[str]) -> int:
     for index, wire in enumerate(wires):
         this = Wire(index, [])
         wire_list = wire.split(',')
-
+        current_x, current_y = (0, 0)
         for d in wire_list:
             direction = d[0]
             move = int(d[1:])
-            try:
-                current_x, current_y = this.coordinates[-1]
-            except IndexError:
-                current_x, current_y = (0, 0)
-
-            if direction == "R":
-                this.coordinates.extend(
-                    list(zip(range(current_x, current_x + move + 1), [current_y] * (move + 1))))
-            elif direction == "U":
-                this.coordinates.extend(
-                    list(zip([current_x] * (move + 1), range(current_y, current_y + move + 1))))
-            elif direction == "L":
-                this.coordinates.extend(list(
-                    zip(range(current_x, current_x - (move + 1), -1), [current_y] * (move + 1))))
-            elif direction == "D":
-                this.coordinates.extend(list(
-                    zip([current_x] * (move + 1), range(current_y, current_y - (move + 1), -1))))
-
+            for _ in range(move):
+                current_x += DX[direction]
+                current_y += DY[direction]
+                this.coordinates.append((current_x, current_y))
         wire_container.append(this)
 
-    # print(f'Wire1: {wire_container[0]}')
-    # print(f'Wire2: {wire_container[1]}')
+    wire1, wire2 = wire_container
 
-    crossed_points = set(wire_container[0].coordinates) & set(
-        wire_container[1].coordinates)
-    # print(f'Crossed: {crossed_points}')
-
-    # Exclude the origin
-    crossed_points.remove((0, 0))
-
-    closest_point = min(crossed_points,
-                        key=lambda x: abs(x[0]) + abs(x[1]))
-    return (abs(closest_point[0]) + abs(closest_point[1]), list(crossed_points))
+    intersections = set(wire1.coordinates) & set(wire2.coordinates)
+    return intersections
 
 
-# assert get_the_closest_point(wires) == 6
-# assert get_the_closest_point(
-#     ["R75,D30,R83,U83,L12,D49,R71,U7,L72", "U62,R66,U55,R34,D71,R55,D58,R83"]) == 159
-# assert get_the_closest_point(["R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51",
-    #   "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"]) == 135
+def get_the_closest_point(wires: List[str]) -> int:
+    intersections = get_intersections(wires)
+    return min([abs(x) + abs(y) for x, y in intersections])
+
+
+assert get_the_closest_point(["R8,U5,L5,D3", "U7,R6,D4,L4"]) == 6
+assert get_the_closest_point(
+    ["R75,D30,R83,U83,L12,D49,R71,U7,L72", "U62,R66,U55,R34,D71,R55,D58,R83"]) == 159
+assert get_the_closest_point(["R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51",
+                              "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"]) == 135
 
 with open('data/day3.txt') as f:
     lines = [line.strip() for line in f]
 
-# print(get_the_closest_point(lines))
+print(get_the_closest_point(lines))
 
 # PART II
 
 
-def take_steps(wires: List[str]) -> int:
-    intersections = get_the_closest_point(wires)[1]
-    # print(intersections)
-    all_steps = []
-    for intersection in intersections:
-        total_steps = 0
-        for wire in wires:
-            steps = 0
-            wire_list = wire.split(',')
-            current_x, current_y = (0, 0)
-            for d in wire_list:
-                direction = d[0]
-                move = int(d[1:])
+def take_steps(wire: str) -> int:
 
-                for _ in range(1, move + 1):
-                    steps += 1
+    all_steps = {}
+    current_x = current_y = steps = 0
 
-                    if direction == 'R':
-                        current_coord = (current_x + 1, current_y)
-                        current_x += 1
-                    elif direction == 'U':
-                        current_coord = (current_x, current_y + 1)
-                        current_y += 1
-                    elif direction == 'L':
-                        current_coord = (current_x - 1, current_y)
-                        current_x -= 1
-                    elif direction == 'D':
-                        current_coord = (current_x, current_y - 1)
-                        current_y -= 1
-                    # print(current_coord)
-                    if current_coord == intersection:
-                        total_steps += steps
+    for d in wire.split(','):
+        direction = d[0]
+        move = int(d[1:])
 
-        all_steps.append(total_steps)
-        # print(all_steps)
+        for _ in range(move):
+            steps += 1
+            current_x += DX[direction]
+            current_y += DY[direction]
 
-    return min(all_steps)
+            if (current_x, current_y) not in all_steps:
+                all_steps[(current_x, current_y)] = steps
+
+    return all_steps
 
 
-assert take_steps(wires) == 30
-assert take_steps(["R75,D30,R83,U83,L12,D49,R71,U7,L72",
-                   "U62,R66,U55,R34,D71,R55,D58,R83"]) == 610
-assert take_steps(["R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51",
-                   "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"]) == 410
+def smallest_steps(wires: List[str]) -> int:
+    wire1_steps = take_steps(wires[0])
+    wire2_steps = take_steps(wires[1])
 
-print(take_steps(lines))
+    intersections = get_intersections(wires)
+
+    return min([wire1_steps[intersection] + wire2_steps[intersection] for intersection in intersections])
+
+
+assert smallest_steps(["R8,U5,L5,D3", "U7,R6,D4,L4"]) == 30
+assert smallest_steps(["R75,D30,R83,U83,L12,D49,R71,U7,L72",
+                       "U62,R66,U55,R34,D71,R55,D58,R83"]) == 610
+assert smallest_steps(["R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51",
+                       "U98,R91,D20,R16,D67,R40,U7,R15,U6,R7"]) == 410
+
+print(smallest_steps(lines))
