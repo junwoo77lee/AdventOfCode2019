@@ -3,131 +3,97 @@ from typing import List
 from itertools import permutations
 
 
-input_value = 5
 
 def computing_machine(intcode: str) -> int:
     code_list = parse_code(intcode)
 
-    # code_list[1] = noun
-    # code_list[2] = verb
-
     i = 0
-    while (i < len(code_list)):
+    while code_list[i] != 99:
         opcode = code_list[i]
-        # print(opcode)
-        if opcode == 99:
-            return code_list
-        else:
-            if opcode > 100:
-                opcode, *modes = parse_opcode(opcode) # returns modes and new_opcode
-                code_list, i = processor(opcode, code_list, i, parsed_modes=modes)
-            else:
-                code_list, i = processor(opcode, code_list, i, parsed_modes=None)
+        opcode, *modes = parse_opcode(opcode) # returns modes and new_opcode
+        code_list, i = processor(opcode, code_list, i, input=5, parsed_modes=modes)
+
+    return code_list
 
 
 def parse_opcode(opcode: int) -> List[int]:
     five_digits_opcode = str(opcode).zfill(5)
     mode3, mode2, mode1, _, opcode = list(five_digits_opcode)
-    return [int(opcode), int(mode1), int(mode2)]
+    return [int(opcode), int(mode1), int(mode2), int(mode3)]
 
 
-def sub_processor(code_list: List[int], params: List[int], parsed_modes: List[int]) -> List[int]:
-    # return the converted paramaters
+def sub_processor(code_list: List[int], index: int, n: int, parsed_modes: List[int], target: bool) -> List[int]:
+    # return the converted paramaters according to each parameter mode
 
-    if not parsed_modes:
-        new_params = []
-        for p in params:
+    params = code_list[index+1:index+n+1]
+    if target:
+        parsed_modes[-1] = 1
+
+    new_params = []
+    for m, p in zip(parsed_modes, params):
+        if m == 0: # position mode
             p = code_list[p]
             new_params.append(p)
-    else:
-        new_params = []
-        for m, p in zip(parsed_modes, params):
-            if m == 0: # position mode
-                p = code_list[p]
-                new_params.append(p)
-            else: # immediate mode
-                p = p
-                new_params.append(p)
+        else: # immediate mode
+            p = p
+            new_params.append(p)
+
     return new_params
 
 
-def processor(opcode: int, code_list: List[int], index: int, *, parsed_modes: List[str]=None) -> (List[int], int):
+def processor(opcode: int, code_list: List[int], index: int, *, input: int, parsed_modes: List[str]) -> (List[int], int):
     # return the modified list
     index_ref = dict(zip([1, 2, 3, 4, 5, 6, 7, 8], [4, 4, 2, 2, 3, 3, 4, 4]))
 
     if opcode == 1:
-        param1 = code_list[index + 1]
-        param2 = code_list[index + 2]
-        param3 = code_list[index + 3]
-
-        params = sub_processor(code_list, [param1, param2], parsed_modes)
-        code_list[param3] = params[0] + params[1]
+        params = sub_processor(code_list, index, 3, parsed_modes, True)
+        code_list[params[2]] = params[0] + params[1]
         index += index_ref[opcode]
 
     elif opcode == 2:
-        param1 = code_list[index + 1]
-        param2 = code_list[index + 2]
-        param3 = code_list[index + 3]
-
-        params = sub_processor(code_list, [param1, param2], parsed_modes)
-        code_list[param3] = params[0] * params[1]
+        params = sub_processor(code_list, index, 3, parsed_modes, True)
+        code_list[params[2]] = params[0] * params[1]
         index += index_ref[opcode]
 
     elif opcode == 3:
         param1 = code_list[index + 1]
-        code_list[param1] = input_value
+        code_list[param1] = input
         index += index_ref[opcode]
 
     elif opcode == 4:
-        param1 = code_list[index + 1]
-
-        params = sub_processor(code_list, [param1], parsed_modes)
+        params = sub_processor(code_list, index, 1, parsed_modes, False)
         output = params[0]
         print(f'Output: {output}')
         index += index_ref[opcode]
     
     elif opcode == 5:
-        param1 = code_list[index + 1]
-        param2 = code_list[index + 2]
-
-        params = sub_processor(code_list, [param1, param2], parsed_modes)
+        params = sub_processor(code_list, index, 2, parsed_modes, False)
         if params[0] != 0:
             index = params[1]
         else:
             index += index_ref[opcode]
 
     elif opcode == 6:
-        param1 = code_list[index + 1]
-        param2 = code_list[index + 2]
-
-        params = sub_processor(code_list, [param1, param2], parsed_modes)
+        params = sub_processor(code_list, index, 2, parsed_modes, False)
         if params[0] == 0:
             index = params[1]
         else:
             index += index_ref[opcode]
 
     elif opcode == 7:
-        param1 = code_list[index + 1]
-        param2 = code_list[index + 2]
-        param3 = code_list[index + 3]
-
-        params = sub_processor(code_list, [param1, param2], parsed_modes)
+        params = sub_processor(code_list, index, 3, parsed_modes, True)
         if params[0] < params[1]:
-            code_list[param3] = 1
+            code_list[params[2]] = 1
         else:
-            code_list[param3] = 0
+            code_list[params[2]] = 0
         index += index_ref[opcode]
         
     elif opcode == 8:
-        param1 = code_list[index + 1]
-        param2 = code_list[index + 2]
-        param3 = code_list[index + 3]
-
-        params = sub_processor(code_list, [param1, param2], parsed_modes)
+        params = sub_processor(code_list, index, 3, parsed_modes, True)
         if params[0] == params[1]:
-            code_list[param3] = 1
+            code_list[params[2]] = 1
         else:
-            code_list[param3] = 0
+            code_list[params[2]] = 0
         index += index_ref[opcode]
 
     return code_list, index
